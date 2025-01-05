@@ -1,17 +1,43 @@
-import { PrismaClient } from "@prisma/client";
+import prismaRandom from 'prisma-extension-random';
+import { PrismaClient as MongoPrismaClient } from '../../generated/mongo-client';
+import { PrismaClient as MySQLPrismaClient } from '../../generated/mysql-client';
 
-// Prisma Client 싱글톤 관리
-// Singleton으로 관리하지 않을 경우, 각각의 요청마다 PrismaClient 인스턴스가 생성되어
-// DB 연결이 매번 생성되어 성능이 저하될 수 있음
-// 참고: https://www.prisma.io/docs/guides/performance-and-optimization/connection-management
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+// 확장된 MySQL Prisma Client 타입 정의
+type ExtendedMySQLPrismaClient = MySQLPrismaClient & {
+  user: {
+    findManyRandom: (
+      num: number,
+      args?: Parameters<MySQLPrismaClient['user']['findMany']>[0]
+    ) => Promise<string>; // 필요에 따라 적절한 반환 타입으로 수정
+  };
+};
 
-const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    log: ['query'], // 로깅 활성화 (선택 사항)
+// 글로벌 타입 정의
+const globalForPrisma = global as unknown as {
+  mysqlPrisma?: ExtendedMySQLPrismaClient;
+  mongoPrisma?: MongoPrismaClient;
+};
+
+// MySQL Prisma Client 싱글톤
+const mysqlPrisma =
+  globalForPrisma.mysqlPrisma ||
+  (new MySQLPrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn'] : [],
+  }).$extends(prismaRandom()) as unknown as ExtendedMySQLPrismaClient);
+
+// MongoDB Prisma Client 싱글톤
+const mongoPrisma =
+  globalForPrisma.mongoPrisma ||
+  new MongoPrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn'] : [],
   });
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+// 개발 환경에서는 글로벌 객체에 Prisma Client 저장
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.mysqlPrisma = mysqlPrisma;
+  globalForPrisma.mongoPrisma = mongoPrisma;
+}
 
-export default prisma;
+// 각 Prisma Client 내보내기
+export { mongoPrisma, mysqlPrisma };
+

@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma";
+import { mysqlPrisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import { NextResponse } from "next/server";
 export async function POST(request : Request) {
@@ -12,7 +12,7 @@ export async function POST(request : Request) {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = await prisma.user.create({
+        const newUser = await mysqlPrisma.user.create({
             data: {
                 name,
                 email,
@@ -26,3 +26,22 @@ export async function POST(request : Request) {
         return NextResponse.json({error: "Error creating user"}, { status: 500 });
     }
 }
+
+export async function GET() {
+    try {
+      // 랜덤 데이터를 가져옵니다.
+      const userData = await mysqlPrisma.user.findManyRandom(5, {
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+  
+      // JSON 응답으로 반환합니다.
+      return NextResponse.json(userData);
+    } catch (error) {
+      console.error("Error fetching random users:", error);
+      return NextResponse.json({ error: "Failed to fetch random users" }, { status: 500 });
+    }
+  }
+  
