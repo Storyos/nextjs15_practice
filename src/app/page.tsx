@@ -1,3 +1,5 @@
+import Drag from "@/components/Animations/Drag";
+import DragConstraints from "@/components/Animations/DragConstraints";
 import EnterAnimation from "@/components/Animations/EnterAnimation";
 import ExitAnimation from "@/components/Animations/ExitAnimation";
 import Gestures from "@/components/Animations/Gestures";
@@ -11,6 +13,8 @@ export default function page() {
       <ExitAnimation/>
       <Gestures/>
       <Keyframes/>
+      <Drag/>
+      <DragConstraints></DragConstraints>
     </div>
   );
 }
